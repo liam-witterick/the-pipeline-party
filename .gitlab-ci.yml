@@ -1,0 +1,32 @@
+image: docker:19.03.12
+
+stages:
+  - build
+  - test
+  - push
+  - deploy
+
+variables:
+  IMAGE_TAG: ${CI_COMMIT_TAG:-$CI_COMMIT_SHA}
+  DEPLOY_ENV: ${DEPLOY_ENV:-production}
+
+build:
+  stage: build
+  script:
+    - make build-image IMAGE_TAG=${IMAGE_TAG}
+
+test:
+  stage: test
+  script:
+    - make test
+
+push:
+  stage: push
+  script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - make push-image IMAGE_TAG=${IMAGE_TAG}
+
+deploy:
+  stage: deploy
+  script:
+    - make deploy-k8s DEPLOY_ENV=${DEPLOY_ENV} IMAGE_TAG=${IMAGE_TAG}

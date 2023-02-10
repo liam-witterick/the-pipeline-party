@@ -1,0 +1,15 @@
+language: minimal
+services:
+  - docker
+env:
+  global:
+    - IMAGE_TAG=${TRAVIS_TAG:-latest}
+    - DEPLOY_ENV=${DEPLOY_ENV:-production}
+before_script:
+  - make build-image IMAGE_TAG=${IMAGE_TAG}
+script:
+  - make test
+after_success:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - make push-image IMAGE_TAG=${IMAGE_TAG}
+  - make deploy-k8s DEPLOY_ENV=${DEPLOY_ENV} IMAGE_TAG=${IMAGE_TAG}

@@ -1,0 +1,18 @@
+version: 0.2
+
+env:
+  IMAGE_TAG: ${IMAGE_TAG:-latest}
+  DEPLOY_ENV: ${DEPLOY_ENV:-production}
+
+phases:
+  pre_build:
+    commands:
+      - make build-image IMAGE_TAG=${IMAGE_TAG}
+  build:
+    commands:
+      - make test
+  post_build:
+    commands:
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - make push-image IMAGE_TAG=${IMAGE_TAG}
+      - make deploy-k8s DEPLOY_ENV=${DEPLOY_ENV} IMAGE_TAG=${IMAGE_TAG}

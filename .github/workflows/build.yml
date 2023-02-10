@@ -1,0 +1,36 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_TAG: ${{ env.IMAGE_TAG }}
+  DEPLOY_ENV: ${{ env.DEPLOY_ENV }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: 14
+
+    - name: Pre-build
+      run: |
+        make build-image IMAGE_TAG=${IMAGE_TAG}
+
+    - name: Build
+      run: |
+        make test
+
+    - name: Post-build
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        make push-image IMAGE_TAG=${IMAGE_TAG}
+        make deploy-k8s DEPLOY_ENV=${DEPLOY_ENV} IMAGE_TAG=${IMAGE_TAG}

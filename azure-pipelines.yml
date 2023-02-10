@@ -1,0 +1,43 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-20.04'
+
+variables:
+  IMAGE_TAG: ${{ env.TAG_NAME }}
+  DEPLOY_ENV: ${{ env.DEPLOY_ENV }}
+
+stages:
+- stage: Build
+  displayName: Build and Push Docker Image
+  jobs:
+  - job: Build
+    displayName: Build and Push Docker Image
+    steps:
+    - task: Docker@2
+      inputs:
+        command: build
+        context: .
+        tags: |
+          $(IMAGE_TAG)
+    - task: Docker@2
+      inputs:
+        command: login
+        loginServer: ${{ env.REGISTRY_URL }}
+        username: $(REGISTRY_USERNAME)
+        password: $(REGISTRY_PASSWORD)
+    - task: Docker@2
+      inputs:
+        command: push
+        tags: |
+          $(IMAGE_TAG)
+
+- stage: Deploy
+  displayName: Deploy to Kubernetes
+  jobs:
+  - job: Deploy
+    displayName: Deploy to Kubernetes
+    steps:
+    - script: make deploy-k8s DEPLOY_ENV=${{ env.DEPLOY_ENV }} IMAGE_TAG=${{ env.TAG_NAME }}
+      displayName: Run Makefile Deploy Target

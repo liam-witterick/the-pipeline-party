@@ -1,0 +1,28 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.15
+    environment:
+      IMAGE_TAG: ${IMAGE_TAG:-latest}
+      DEPLOY_ENV: ${DEPLOY_ENV:-production}
+    steps:
+      - checkout
+      - run:
+          name: Build Docker Image
+          command: |
+            make build-image IMAGE_TAG=${IMAGE_TAG}
+      - run:
+          name: Push Docker Image
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            make push-image IMAGE_TAG=${IMAGE_TAG}
+      - run:
+          name: Deploy to Kubernetes
+          command: |
+            make deploy-k8s DEPLOY_ENV=${DEPLOY_ENV} IMAGE_TAG=${IMAGE_TAG}
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build
